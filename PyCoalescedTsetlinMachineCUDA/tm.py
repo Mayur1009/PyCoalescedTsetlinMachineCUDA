@@ -423,6 +423,8 @@ class CommonTsetlinMachine:
                 ).astype(np.int32)
                 cuda.memcpy_htod(self.class_sum_gpu, class_sum)
 
+                print("Created class_sum")
+
                 self.evaluate_update.prepared_call(
                     self.grid,
                     self.block,
@@ -433,6 +435,8 @@ class CommonTsetlinMachine:
                     np.int32(e),
                 )
                 cuda.Context.synchronize()
+
+                print("DONE...evaluate_update")
 
                 self.update.prepared_call(
                     self.grid,
@@ -446,6 +450,12 @@ class CommonTsetlinMachine:
                     np.int32(e),
                 )
                 cuda.Context.synchronize()
+
+                print("DONE...update")
+
+                print("DONE...example...goto next example")
+
+            print(f"DONE epoch {epoch}")
 
         self.ta_state = np.array([])
         self.clause_weights = np.array([])

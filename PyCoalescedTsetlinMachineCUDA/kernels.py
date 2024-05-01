@@ -178,8 +178,11 @@ code_update = """
 		// Evaluate example
 		__global__ void evaluate(unsigned int *global_ta_state, int *clause_weights, int *class_sum, int *X, int example)
 		{
+            printf("Inside evaluate \\n");
 			int index = blockIdx.x * blockDim.x + threadIdx.x;
 			int stride = blockDim.x * gridDim.x;
+
+            printf("index = %d, stride = %d\\n", index, stride);
 
 			for (int clause = index; clause < CLAUSES; clause += stride) {
 				unsigned int *ta_state = &global_ta_state[clause*LA_CHUNKS*STATE_BITS];
@@ -206,7 +209,9 @@ code_update = """
 				if (clause_output) {
 					for (int class_id = 0; class_id < CLASSES; ++class_id) {
 						int clause_weight = clause_weights[class_id*CLAUSES + clause];
-						atomicAdd(&class_sum[class_id], clause_weight);					
+                        printf("class_id = %d, clause_weight = %d\\n", class_id, clause_weight);
+						atomicAdd(&class_sum[class_id], clause_weight);
+                        printf("\tclass_id = %d, clause_weight = %d\\n", class_id, clause_weight);
 					}
 				}
 			}
@@ -215,10 +220,12 @@ code_update = """
 		// Update state of Tsetlin Automata team
 		__global__ void update(curandState *state, unsigned int *global_ta_state, int *clause_weights, int *class_sum, int *X, int *y, int example)
 		{
+            printf("Inside update \\n");
 			int index = blockIdx.x * blockDim.x + threadIdx.x;
 			int stride = blockDim.x * gridDim.x;
+            printf("index = %d, stride = %d\\n", index, stride);
 
-			/* Copy state to local memory for efficiency */  
+			/* Copy state to local memory for efficiency */
 			curandState localState = state[index];
 
 			// Calculate clause output first
@@ -236,6 +243,8 @@ code_update = """
 					} else if (local_class_sum < -THRESHOLD) {
 						local_class_sum = -THRESHOLD;
 					}
+                    printf("class_id = %d, local_class_sum = %d\\n", class_id, local_class_sum);
+                    printf("Going to update_clause\\n");
 					update_clause(&localState, &clause_weights[class_id*CLAUSES + clause], ta_state, clause_output, clause_patch, &X[(unsigned long long)example*(LA_CHUNKS*PATCHES)], y[example*CLASSES + class_id], local_class_sum);
 				}
 			}
