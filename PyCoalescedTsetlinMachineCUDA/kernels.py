@@ -120,7 +120,10 @@ code_update = """
 
 		__device__ inline void update_clause(curandState *localState, int *clause_weight, unsigned int *ta_state, int clause_output, int clause_patch, int *X, int y, int class_sum)
 		{
+            printf("y = %d, class_sum = %d, clause_output = %d, clause_patch = %d, *clause_weight = %d, localState = %f\\n", y, class_sum, clause_output,
+            clause_patch, *clause_weight, curand_uniform(localState));
 			int target = 1 - 2*(class_sum > y);
+            printf("target = %d\\n", target);
 			
 			if (target == -1 && curand_uniform(localState) > 1.0*Q/max(1, CLASSES-1)) {
 				return;
