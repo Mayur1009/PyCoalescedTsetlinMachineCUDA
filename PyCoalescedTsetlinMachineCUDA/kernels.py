@@ -120,8 +120,7 @@ code_update = """
 
 		__device__ inline void update_clause(curandState *localState, int *clause_weight, unsigned int *ta_state, int clause_output, int clause_patch, int *X, int y, int class_sum)
 		{
-            printf("y = %d, class_sum = %d, clause_output = %d, clause_patch = %d, *clause_weight = %d, localState = %f\\n", y, class_sum, clause_output,
-            clause_patch, *clause_weight, curand_uniform(localState));
+            printf("y = %d, class_sum = %d, clause_output = %d, clause_patch = %d, *clause_weight = %d\\n", y, class_sum, clause_output, clause_patch, *clause_weight);
 			int target = 1 - 2*(class_sum > y);
             printf("target = %d\\n", target);
 			
@@ -130,13 +129,16 @@ code_update = """
 			}
 
 			int sign = (*clause_weight >= 0) - (*clause_weight < 0);
+            printf("sign = %d\\n", sign);
 		
 			int absolute_prediction_error = abs(y - class_sum);
 			if (curand_uniform(localState) <= 1.0*absolute_prediction_error/(2*THRESHOLD)) {
 				if (target*sign > 0) {
+                    printf("TYPE I\\n");
 					if (clause_output && abs(*clause_weight) < INT_MAX) {
 						(*clause_weight) += sign;
 					}
+
 
 					// Type I Feedback
 					for (int la_chunk = 0; la_chunk < LA_CHUNKS; ++la_chunk) {
@@ -147,6 +149,8 @@ code_update = """
 								la_feedback |= (1 << b);
 							}
 						}
+
+                        printf("la_chunk = %d, la_feedback = %d, X[...] = %d\\n", la_chunk, la_feedback, X[clause_patch*LA_CHUNKS + la_chunk]);
 
 
 						if (clause_output) {
@@ -164,6 +168,7 @@ code_update = """
 				} else if (target*sign < 0 && clause_output) {
 					// Type II Feedback
 
+                    printf("TYPE II\\n");
 					(*clause_weight) -= sign;
 					#if NEGATIVE_CLAUSES == 0
 						if (*clause_weight < 1) {
