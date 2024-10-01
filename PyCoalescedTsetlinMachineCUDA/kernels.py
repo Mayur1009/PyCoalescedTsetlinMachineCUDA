@@ -120,25 +120,20 @@ code_update = """
 
 		__device__ inline void update_clause(curandState *localState, int *clause_weight, unsigned int *ta_state, int clause_output, int clause_patch, int *X, int y, int class_sum)
 		{
-            printf("y = %d, class_sum = %d, clause_output = %d, clause_patch = %d, *clause_weight = %d\\n", y, class_sum, clause_output, clause_patch, *clause_weight);
 			int target = 1 - 2*(class_sum > y);
-            printf("target = %d\\n", target);
 			
 			if (target == -1 && curand_uniform(localState) > 1.0*Q/max(1, CLASSES-1)) {
 				return;
 			}
 
 			int sign = (*clause_weight >= 0) - (*clause_weight < 0);
-            printf("sign = %d\\n", sign);
 		
 			int absolute_prediction_error = abs(y - class_sum);
 			if (curand_uniform(localState) <= 1.0*absolute_prediction_error/(2*THRESHOLD)) {
 				if (target*sign > 0) {
-                    printf("TYPE I\\n");
 					if (clause_output && abs(*clause_weight) < INT_MAX) {
 						(*clause_weight) += sign;
 					}
-
 
 					// Type I Feedback
 					for (int la_chunk = 0; la_chunk < LA_CHUNKS; ++la_chunk) {
@@ -149,8 +144,6 @@ code_update = """
 								la_feedback |= (1 << b);
 							}
 						}
-
-                        printf("la_chunk = %d, la_feedback = %d, X[...] = %d\\n", la_chunk, la_feedback, X[clause_patch*LA_CHUNKS + la_chunk]);
 
 
 						if (clause_output) {
@@ -168,7 +161,6 @@ code_update = """
 				} else if (target*sign < 0 && clause_output) {
 					// Type II Feedback
 
-                    printf("TYPE II\\n");
 					(*clause_weight) -= sign;
 					#if NEGATIVE_CLAUSES == 0
 						if (*clause_weight < 1) {
@@ -186,11 +178,8 @@ code_update = """
 		// Evaluate example
 		__global__ void evaluate(unsigned int *global_ta_state, int *clause_weights, int *class_sum, int *X, int example)
 		{
-            printf("Inside evaluate \\n");
 			int index = blockIdx.x * blockDim.x + threadIdx.x;
 			int stride = blockDim.x * gridDim.x;
-
-            printf("index = %d, stride = %d\\n", index, stride);
 
 			for (int clause = index; clause < CLAUSES; clause += stride) {
 				unsigned int *ta_state = &global_ta_state[clause*LA_CHUNKS*STATE_BITS];
@@ -217,9 +206,7 @@ code_update = """
 				if (clause_output) {
 					for (int class_id = 0; class_id < CLASSES; ++class_id) {
 						int clause_weight = clause_weights[class_id*CLAUSES + clause];
-                        printf("class_id = %d, clause_weight = %d\\n", class_id, clause_weight);
-						atomicAdd(&class_sum[class_id], clause_weight);
-                        printf("\tclass_id = %d, clause_weight = %d\\n", class_id, clause_weight);
+						atomicAdd(&class_sum[class_id], clause_weight);					
 					}
 				}
 			}
@@ -228,12 +215,10 @@ code_update = """
 		// Update state of Tsetlin Automata team
 		__global__ void update(curandState *state, unsigned int *global_ta_state, int *clause_weights, int *class_sum, int *X, int *y, int example)
 		{
-            printf("Inside update \\n");
 			int index = blockIdx.x * blockDim.x + threadIdx.x;
 			int stride = blockDim.x * gridDim.x;
-            printf("index = %d, stride = %d\\n", index, stride);
 
-			/* Copy state to local memory for efficiency */
+			/* Copy state to local memory for efficiency */  
 			curandState localState = state[index];
 
 			// Calculate clause output first
@@ -251,8 +236,6 @@ code_update = """
 					} else if (local_class_sum < -THRESHOLD) {
 						local_class_sum = -THRESHOLD;
 					}
-                    printf("class_id = %d, local_class_sum = %d\\n", class_id, local_class_sum);
-                    printf("Going to update_clause\\n");
 					update_clause(&localState, &clause_weights[class_id*CLAUSES + clause], ta_state, clause_output, clause_patch, &X[(unsigned long long)example*(LA_CHUNKS*PATCHES)], y[example*CLASSES + class_id], local_class_sum);
 				}
 			}
